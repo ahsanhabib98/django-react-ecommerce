@@ -1,8 +1,8 @@
 import React from "react";
-import { Container, Header, Icon, Label, Menu, Table } from 'semantic-ui-react';
-import {authAxios} from "../utils";
-import {orderSummaryURL} from "../constants";
-import {cartFail, cartSuccess} from "../store/actions/cart";
+import { Button, Container, Header, Icon, Label, Menu, Table } from 'semantic-ui-react';
+import { authAxios } from "../utils";
+import { orderSummaryURL } from "../constants";
+import {Link} from "react-router-dom";
 
 
 class OrderSummary extends React.Component {
@@ -24,63 +24,73 @@ class OrderSummary extends React.Component {
             this.setState({ data: res.data, loading: false });
           })
           .catch(err => {
-            this.setState({ error: err, loading: false });
+            if (err.response.status === 404) {
+                this.setState({
+                    error: "You currently do not have an order",
+                    loading: false
+                });
+            } else {
+                this.setState({error: err, loading: false});
+            }
           });
     };
 
     render() {
-
+        const { data, error, loading } = this.state;
+        console.log(data);
         return (
             <Container>
                 <Header as='h3'> Order Summary</Header>
+                {data && (
                 <Table celled>
                     <Table.Header>
                       <Table.Row>
-                        <Table.HeaderCell>Header</Table.HeaderCell>
-                        <Table.HeaderCell>Header</Table.HeaderCell>
-                        <Table.HeaderCell>Header</Table.HeaderCell>
+                        <Table.HeaderCell>Item #</Table.HeaderCell>
+                        <Table.HeaderCell>Item name</Table.HeaderCell>
+                        <Table.HeaderCell>Item price</Table.HeaderCell>
+                        <Table.HeaderCell>Item quantity</Table.HeaderCell>
+                        <Table.HeaderCell>Total item price</Table.HeaderCell>
                       </Table.Row>
                     </Table.Header>
 
                     <Table.Body>
-                      <Table.Row>
-                        <Table.Cell>
-                          <Label ribbon>First</Label>
+                        {data.order_items.map((order_item, i) => {
+                            return (
+                                <Table.Row key={order_item.id}>
+                                    <Table.Cell>{i+1}</Table.Cell>
+                                    <Table.Cell>{order_item.item}</Table.Cell>
+                                    <Table.Cell>${order_item.item_obj.price}</Table.Cell>
+                                    <Table.Cell>{order_item.quantity}</Table.Cell>
+                                    <Table.Cell>
+                                      {order_item.item_obj.discount_price && (
+                                          <Label color="green" ribbon>ON DISCOUNT</Label>
+                                      )}
+                                      ${order_item.final_price}
+                                    </Table.Cell>
+                                </Table.Row>
+                            );
+                        })}
+                        <Table.Row>
+                        <Table.Cell />
+                        <Table.Cell />
+                        <Table.Cell />
+                        <Table.Cell colSpan='2' textAlign="center">
+                            Total: ${data.total}
                         </Table.Cell>
-                        <Table.Cell>Cell</Table.Cell>
-                        <Table.Cell>Cell</Table.Cell>
-                      </Table.Row>
-                      <Table.Row>
-                        <Table.Cell>Cell</Table.Cell>
-                        <Table.Cell>Cell</Table.Cell>
-                        <Table.Cell>Cell</Table.Cell>
-                      </Table.Row>
-                      <Table.Row>
-                        <Table.Cell>Cell</Table.Cell>
-                        <Table.Cell>Cell</Table.Cell>
-                        <Table.Cell>Cell</Table.Cell>
                       </Table.Row>
                     </Table.Body>
 
                     <Table.Footer>
                       <Table.Row>
-                        <Table.HeaderCell colSpan='3'>
-                          <Menu floated='right' pagination>
-                            <Menu.Item as='a' icon>
-                              <Icon name='chevron left' />
-                            </Menu.Item>
-                            <Menu.Item as='a'>1</Menu.Item>
-                            <Menu.Item as='a'>2</Menu.Item>
-                            <Menu.Item as='a'>3</Menu.Item>
-                            <Menu.Item as='a'>4</Menu.Item>
-                            <Menu.Item as='a' icon>
-                              <Icon name='chevron right' />
-                            </Menu.Item>
-                          </Menu>
+                        <Table.HeaderCell colSpan='5' textAlign="right">
+                            <Link to="/checkout">
+                                <Button color="yellow">Checkout</Button>
+                            </Link>
                         </Table.HeaderCell>
                       </Table.Row>
                     </Table.Footer>
                 </Table>
+                )}
             </Container>
         )
     }
