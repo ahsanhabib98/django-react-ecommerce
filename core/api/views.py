@@ -11,7 +11,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.status import HTTP_200_OK, HTTP_400_BAD_REQUEST
-from core.models import Item, OrderItem, Order, UserProfile, Payment
+from core.models import Item, OrderItem, Order, UserProfile, Payment, Coupon
 from .serializers import ItemSerializer, OrderSerializer
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
@@ -164,3 +164,15 @@ class PaymentView(APIView):
             return Response({"message": "A serious error occurred. We have been notifed."}, status=HTTP_400_BAD_REQUEST)
 
         return Response({"message": "Invalid data received"}, status=HTTP_400_BAD_REQUEST)
+
+
+class AddCouponView(APIView):
+    def post(self, request, *args, **kwargs):
+        code = request.data.get('code', None)
+        if code is None:
+            return Response({"message": "Invalid data received"}, status=HTTP_400_BAD_REQUEST)
+        order = Order.objects.get(user=self.request.user, ordered=False)
+        coupon = get_object_or_404(Coupon, code=code)
+        order.coupon = coupon
+        order.save()
+        return Response(status=HTTP_200_OK)

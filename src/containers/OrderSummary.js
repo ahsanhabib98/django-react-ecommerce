@@ -1,5 +1,18 @@
 import React from "react";
-import { Button, Container, Header, Icon, Label, Menu, Table } from 'semantic-ui-react';
+import {
+    Button,
+    Container,
+    Dimmer,
+    Header,
+    Icon,
+    Image,
+    Label,
+    Loader,
+    Menu,
+    Message,
+    Segment,
+    Table
+} from 'semantic-ui-react';
 import { authAxios } from "../utils";
 import { orderSummaryURL } from "../constants";
 import {Link} from "react-router-dom";
@@ -41,6 +54,17 @@ class OrderSummary extends React.Component {
         return (
             <Container>
                 <Header as='h3'> Order Summary</Header>
+                {error && (
+                    <Message error header="There was an error" content={JSON.stringify(error)} />
+                )}
+                {loading && (
+                    <Segment>
+                        <Dimmer active inverted>
+                            <Loader inverted>Loading</Loader>
+                            <Image src='/images/wireframe/short-paragraph.png' />
+                        </Dimmer>
+                    </Segment>
+                )}
                 {data && (
                 <Table celled>
                     <Table.Header>
