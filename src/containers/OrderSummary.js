@@ -95,12 +95,12 @@ class OrderSummary extends React.Component {
                             );
                         })}
                         <Table.Row>
-                        <Table.Cell />
-                        <Table.Cell />
-                        <Table.Cell />
-                        <Table.Cell colSpan='2' textAlign="center">
-                            Total: ${data.total}
-                        </Table.Cell>
+                            <Table.Cell />
+                            <Table.Cell />
+                            <Table.Cell />
+                            <Table.Cell colSpan='2' textAlign="center">
+                                Total: ${data.total}
+                            </Table.Cell>
                       </Table.Row>
                     </Table.Body>
 

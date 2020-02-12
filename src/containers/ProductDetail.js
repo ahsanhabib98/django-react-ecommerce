@@ -2,7 +2,7 @@ import React from 'react'
 import { withRouter } from 'react-router-dom';
 import axios from 'axios';
 import { connect } from "react-redux"
-import { Button, Card, Container, Dimmer, Grid, Icon, Image, Item, Label, Loader, Message, Segment } from 'semantic-ui-react'
+import { Button, Card, Container, Dimmer, Grid, Header, Icon, Image, Item, Label, Loader, Message, Segment } from 'semantic-ui-react'
 import { productDetailURL, addToCartURL } from "../constants";
 import { authAxios } from '../utils'
 import { fetchCart } from "../store/actions/cart";
@@ -86,7 +86,24 @@ class ProductDetail extends React.Component {
                       />
                   </Grid.Column>
                   <Grid.Column>
-                      variations
+                      <Header as='h2'>Try different variations</Header>
+                      {data.variations && data.variations.map(v => {
+                          return (
+                              <React.Fragment>
+                                  <Header as='h3'>{v.name}</Header>
+                                  <Item.Group divided key={v.id}>
+                                      {v.item_variations.map(iv => (
+                                          <Item key={iv.id}>
+                                              {iv.attachment && (
+                                                  <Item.Image size='tiny' src={`http://127.0.0.1:8000${iv.attachment}`} />
+                                              )}
+                                              <Item.Content verticalAlign='middle'>{iv.value}</Item.Content>
+                                          </Item>
+                                      ))}
+                                  </Item.Group>
+                              </React.Fragment>
+                          )
+                      })}
                   </Grid.Column>
               </Grid.Row>
           </Grid>
