@@ -39,7 +39,7 @@ class CustomLayout extends React.Component {
                       <Dropdown icon='cart' loading={loading} text={`${cart !== null ? cart.order_items.length : 0}`} pointing className='link item'>
                         <Dropdown.Menu>
                           {cart && cart.order_items.map(order_items => {
-                            return <Dropdown.Item key={order_items.id}>{order_items.quantity} x {order_items.item}</Dropdown.Item>
+                            return <Dropdown.Item key={order_items.id}>{order_items.quantity} x {order_items.item.title}</Dropdown.Item>
                           })}
                           {cart && cart.order_items.length < 1 ? (<Dropdown.Item>No items in your cart</Dropdown.Item>) : null}
                           <Dropdown.Divider />
