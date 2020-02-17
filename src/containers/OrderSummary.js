@@ -48,6 +48,14 @@ class OrderSummary extends React.Component {
           });
     };
 
+    renderVariation = orderItem => {
+        let text = '';
+        orderItem.item_variations.forEach(iv => {
+            text += `${iv.variation.name}: ${iv.value}, `
+        });
+        return text;
+    };
+
     render() {
         const { data, error, loading } = this.state;
         console.log(data);
@@ -78,18 +86,18 @@ class OrderSummary extends React.Component {
                     </Table.Header>
 
                     <Table.Body>
-                        {data.order_items.map((order_item, i) => {
+                        {data.order_items.map((orderItem, i) => {
                             return (
-                                <Table.Row key={order_item.id}>
+                                <Table.Row key={orderItem.id}>
                                     <Table.Cell>{i+1}</Table.Cell>
-                                    <Table.Cell>{order_item.item}</Table.Cell>
-                                    <Table.Cell>${order_item.item_obj.price}</Table.Cell>
-                                    <Table.Cell>{order_item.quantity}</Table.Cell>
+                                    <Table.Cell>{orderItem.item.title} -{" "}{this.renderVariation(orderItem)}</Table.Cell>
+                                    <Table.Cell>${orderItem.item.price}</Table.Cell>
+                                    <Table.Cell>{orderItem.quantity}</Table.Cell>
                                     <Table.Cell>
-                                      {order_item.item_obj.discount_price && (
+                                      {orderItem.item.discount_price && (
                                           <Label color="green" ribbon>ON DISCOUNT</Label>
                                       )}
-                                      ${order_item.final_price}
+                                      ${orderItem.final_price}
                                     </Table.Cell>
                                 </Table.Row>
                             );
