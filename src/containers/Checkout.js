@@ -1,8 +1,9 @@
 import React, {Component} from 'react';
 import {CardElement, injectStripe, Elements, StripeProvider} from "react-stripe-elements";
-import {Button, Checkbox, Container, Dimmer, Divider, Form, Header, Icon, Image, Item, Label, Loader, Message, Segment} from "semantic-ui-react";
+import {Link, withRouter} from "react-router-dom";
+import {Button, Checkbox, Container, Dimmer, Divider, Form, Header, Icon, Image, Item, Label, Loader, Message, Segment, Select} from "semantic-ui-react";
 import {authAxios} from "../utils";
-import {checkoutURL, orderSummaryURL, addCouponURL} from "../constants";
+import {checkoutURL, orderSummaryURL, addCouponURL, addressListURL} from "../constants";
 
 const OrderPreview = props => {
         const { data } = props;
@@ -14,10 +15,10 @@ const OrderPreview = props => {
                         {data.order_items.map((orderItem, i) => {
                             return (
                                 <Item key={i}>
-                                  <Item.Image size='tiny' src={`http://127.0.0.1:8000${orderItem.item_obj.image}`} />
+                                  <Item.Image size='tiny' src={`http://127.0.0.1:8000${orderItem.item.image}`} />
 
                                   <Item.Content verticalAlign='middle'>
-                                    <Item.Header as='a'>{orderItem.quantity} x {orderItem.item_obj.title}</Item.Header>
+                                    <Item.Header as='a'>{orderItem.quantity} x {orderItem.item.title}</Item.Header>
                                     <Item.Extra>
                                       <Label>${orderItem.final_price}</Label>
                                     </Item.Extra>
@@ -84,12 +85,70 @@ class CheckoutForm extends Component {
         data: null,
         loading: false,
         error: null,
-        success: false
+        success: false,
+        shippingAddresses: [],
+        billingAddresses: [],
+        selectedBillingAddress: "",
+        selectedShippingAddress: ""
     };
 
     componentDidMount() {
         this.handleFetchOrder();
+        this.handleFetchBillingAddresses();
+        this.handleFetchShippingAddresses()
     }
+
+    handleGetDefaultAddress = addresses => {
+        const filteredAddresses = addresses.filter(el => el.default === true);
+        if (filteredAddresses.length > 0) {
+            return filteredAddresses[0].id;
+        }
+        return "";
+    };
+
+    handleFetchBillingAddresses = () => {
+        this.setState({ loading: true });
+        const {activeItem} = this.state;
+        authAxios
+            .get(addressListURL("B"))
+            .then(res => {
+                this.setState({ billingAddresses: res.data.map(a => {
+                    return {
+                        key: a.id,
+                        text: `${a.street_address}, ${a.apartment_address}, ${a.country}`,
+                        value: a.id
+                    };
+                }),
+                    selectedBillingAddress: this.handleGetDefaultAddress(res.data),
+                    loading: false
+                });
+            })
+            .catch(err => {
+                this.setState({ error: err });
+            });
+    };
+
+    handleFetchShippingAddresses = () => {
+        this.setState({ loading: true });
+        const {activeItem} = this.state;
+        authAxios
+            .get(addressListURL("S"))
+            .then(res => {
+                this.setState({ shippingAddresses: res.data.map(a => {
+                    return {
+                        key: a.id,
+                        text: `${a.street_address}, ${a.apartment_address}, ${a.country}`,
+                        value: a.id
+                    };
+                }),
+                    selectedShippingAddress: this.handleGetDefaultAddress(res.data),
+                    loading: false
+                });
+            })
+            .catch(err => {
+                this.setState({ error: err });
+            });
+    };
 
     handleFetchOrder = () => {
         this.setState({ loading: true });
@@ -99,10 +158,7 @@ class CheckoutForm extends Component {
           })
           .catch(err => {
             if (err.response.status === 404) {
-                this.setState({
-                    error: "You currently do not have an order",
-                    loading: false
-                });
+                this.props.history.push("/products");
             } else {
                 this.setState({error: err, loading: false});
             }
@@ -121,6 +177,10 @@ class CheckoutForm extends Component {
         })
     };
 
+    handleSelectChange = (e, { name, value }) => {
+        this.setState({ [name]: value });
+    };
+
     submit = (ev) => {
         ev.preventDefault();
         this.setState({ loading: true });
@@ -129,7 +189,13 @@ class CheckoutForm extends Component {
                 if (result.error) {
                     this.setState({error: result.error.message, loading: false});
                 } else {
-                    authAxios.post(checkoutURL, {stripeToken: result.token.id})
+                    this.setState({ error: null });
+                    const { selectedBillingAddress, selectedShippingAddress } = this.state;
+                    authAxios.post(checkoutURL, {
+                        stripeToken: result.token.id,
+                        selectedBillingAddress,
+                        selectedShippingAddress
+                    })
                         .then(res => {
                             this.setState({loading: false, success: true});
                         })
@@ -145,7 +211,7 @@ class CheckoutForm extends Component {
     };
 
     render() {
-        const {data, error, loading, success} = this.state;
+        const {data, error, loading, success, billingAddresses, shippingAddresses, selectedBillingAddress, selectedShippingAddress} = this.state;
         return (
             <div>
                 {error && (
@@ -163,29 +229,64 @@ class CheckoutForm extends Component {
                       <Image src='/images/wireframe/short-paragraph.png' />
                     </Segment>
                 )}
-                {success && (
-                    <Message positive>
-                        <Message.Header>Your payment was successful</Message.Header>
-                        <p>Go to your <b>profile</b> to see the order delivery status.</p>
-                    </Message>
-                )}
 
                 <OrderPreview data={data} />
                 <Divider />
                 <CouponForm handleAddCoupon={(e, code) => this.handleAddCoupon(e, code)} />
                 <Divider />
+                <Header>Select a billing address</Header>
+                {billingAddresses.length > 0 ? (
+                    <Select
+                        name="selectedBillingAddress"
+                        value={selectedBillingAddress}
+                        clearable
+                        options={billingAddresses}
+                        selection
+                        onChange={this.handleSelectChange}
+                    />
+                ): (
+                    <p>You need to <Link to="/profile">add a billing addresses</Link></p>
+                )}
 
-                <Header>Would you like to complete the purchase?</Header>
-                <CardElement />
-                <Button loading={loading} disabled={loading} primary onClick={this.submit} style={{marginTop: "10px"}}>
-                    Submit
-                </Button>
+                <Header>Select a shipping address</Header>
+                {shippingAddresses.length > 0 ? (
+                    <Select
+                        name="selectedShippingAddress"
+                        value={selectedShippingAddress}
+                        clearable
+                        options={shippingAddresses}
+                        selection
+                        onChange={this.handleSelectChange}
+                    />
+                ): (
+                    <p>You need to <Link to="/profile">add a shipping addresses</Link></p>
+                )}
+                <Divider />
+                {billingAddresses.length < 1 || shippingAddresses.length < 1 ? (
+                    <p>You need to add addresses before you can complete your purchase</p>
+                    )
+                    :
+                    (
+                        <React.Fragment>
+                            <Header>Would you like to complete the purchase?</Header>
+                            <CardElement />
+                            {success && (
+                                <Message positive>
+                                    <Message.Header>Your payment was successful</Message.Header>
+                                    <p>Go to your <b>profile</b> to see the order delivery status.</p>
+                                </Message>
+                            )}
+                            <Button loading={loading} disabled={loading} primary onClick={this.submit} style={{marginTop: "10px"}}>
+                                Submit
+                            </Button>
+                        </React.Fragment>
+                    )}
             </div>
         );
     }
 }
 
-const InjectedForm = injectStripe(CheckoutForm);
+const InjectedForm = withRouter(injectStripe(CheckoutForm));
 
 const WrappedForm = () => (
     <Container text>
