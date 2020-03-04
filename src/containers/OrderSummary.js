@@ -14,8 +14,9 @@ import {
     Table
 } from 'semantic-ui-react';
 import { authAxios } from "../utils";
-import { orderSummaryURL } from "../constants";
-import {Link} from "react-router-dom";
+import {orderSummaryURL, orderItemDeleteURL, addToCartURL, orderItemUpdateURL} from "../constants";
+import {Link, Redirect} from "react-router-dom";
+import {connect} from "react-redux";
 
 
 class OrderSummary extends React.Component {
@@ -56,9 +57,49 @@ class OrderSummary extends React.Component {
         return text;
     };
 
+    handleFormData = itemVariations => {
+      return Object.keys(itemVariations).map(key => {
+          return itemVariations[key].id;
+      });
+    };
+
+    handleAddToCart = (slug, itemVariations) => {
+        this.setState({loading: true});
+        const variations = this.handleFormData(itemVariations);
+        authAxios.post(addToCartURL, {slug, variations}).then(res => {
+          this.handleFetchOrder();
+          this.setState({ loading: false });
+        }).catch(err => {
+          this.setState({ error: err, loading: false });
+        });
+    };
+
+    handleRemoveFromCart = (slug) => {
+        authAxios.post(orderItemUpdateURL, {slug})
+          .then(res => {
+            this.handleFetchOrder();
+          })
+          .catch(err => {
+                this.setState({error: err});
+          });
+    };
+
+    handleRemoveItem = itemID => {
+        authAxios.delete(orderItemDeleteURL(itemID))
+          .then(res => {
+            this.handleFetchOrder();
+          })
+          .catch(err => {
+                this.setState({error: err});
+          });
+    };
+
     render() {
         const { data, error, loading } = this.state;
-        console.log(data);
+        const { isAuthenticated } = this.props;
+        if (!isAuthenticated) {
+            return <Redirect to="/login" />
+        }
         return (
             <Container>
                 <Header as='h3'> Order Summary</Header>
@@ -92,12 +133,30 @@ class OrderSummary extends React.Component {
                                     <Table.Cell>{i+1}</Table.Cell>
                                     <Table.Cell>{orderItem.item.title} -{" "}{this.renderVariation(orderItem)}</Table.Cell>
                                     <Table.Cell>${orderItem.item.price}</Table.Cell>
-                                    <Table.Cell>{orderItem.quantity}</Table.Cell>
+                                    <Table.Cell textAlign="center">
+                                        <Icon
+                                          name="minus"
+                                          style={{ float: "left", cursor: "pointer" }}
+                                          onClick={() => this.handleRemoveFromCart(orderItem.item.slug)}
+                                        />
+                                        {orderItem.quantity}
+                                        <Icon
+                                          name="plus"
+                                          style={{ float: "right", cursor: "pointer" }}
+                                          onClick={() => this.handleAddToCart(orderItem.item.slug, orderItem.item_variations)}
+                                        />
+                                    </Table.Cell>
                                     <Table.Cell>
                                       {orderItem.item.discount_price && (
                                           <Label color="green" ribbon>ON DISCOUNT</Label>
                                       )}
                                       ${orderItem.final_price}
+                                      <Icon
+                                          name="trash"
+                                          color="red"
+                                          style={{ float: "right", cursor: "pointer" }}
+                                          onClick={() => this.handleRemoveItem(orderItem.id)}
+                                      />
                                     </Table.Cell>
                                 </Table.Row>
                             );
@@ -128,4 +187,10 @@ class OrderSummary extends React.Component {
     }
 }
 
-export default OrderSummary;
+const mapStateToProps = state => {
+    return {
+        isAuthenticated: state.auth.token !== null
+    }
+};
+
+export default connect(mapStateToProps)(OrderSummary);

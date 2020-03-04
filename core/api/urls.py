@@ -5,13 +5,15 @@ from .views import (
     ItemDetailView,
     AddToCartView,
     OrderDetailView,
+    RemoveFromCartView,
     PaymentView,
     AddCouponView,
     AddressListView,
     AddressCreateView,
     CountryListView,
     AddressUpdateView,
-    AddressDeleteView
+    AddressDeleteView,
+    OrderItemDeleteView
 )
 
 urlpatterns = [
@@ -26,5 +28,7 @@ urlpatterns = [
     path('add-to-cart/', AddToCartView.as_view(), name='add-to-cart'),
     path('order-summary/', OrderDetailView.as_view(), name='order-summary'),
     path('checkout/', PaymentView.as_view(), name='checkout'),
-    path('add-coupon/', AddCouponView.as_view(), name='add-coupon')
+    path('add-coupon/', AddCouponView.as_view(), name='add-coupon'),
+    path('order-item/<pk>/delete/', OrderItemDeleteView.as_view(), name='order-item-delete'),
+    path('order-item/update/', RemoveFromCartView.as_view(), name='order-item-update')
 ]
