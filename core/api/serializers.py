@@ -1,6 +1,6 @@
 from django_countries.serializer_fields import CountryField
 from rest_framework import serializers
-from core.models import Item, OrderItem, Order, Coupon, Variation, ItemVariation, Address
+from core.models import Item, OrderItem, Order, Coupon, Variation, ItemVariation, Address, Payment
 
 
 class StringSerializer(serializers.StringRelatedField):
@@ -140,3 +140,9 @@ class AddressSerializer(serializers.ModelSerializer):
     class Meta:
         model = Address
         fields = ('id', 'user', 'street_address', 'apartment_address', 'country', 'zip', 'address_type', 'default')
+
+
+class PaymentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Payment
+        fields = ('id', 'amount', 'timestamp')

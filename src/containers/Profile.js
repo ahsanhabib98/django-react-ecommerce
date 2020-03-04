@@ -1,12 +1,63 @@
 import React from 'react';
-import {Button, Card, Dimmer, Divider, Form, Grid, Header, Image, Label, Loader, Menu, Message, Segment, Select} from "semantic-ui-react";
-import { countryListURL, addressListURL, addressCreateURL, addressUpdateURL, addressDeleteURL, userIDURL } from "../constants";
+import {Button, Card, Dimmer, Divider, Form, Grid, Header, Image, Label, Loader, Menu, Message, Segment, Select, Table} from "semantic-ui-react";
+import { countryListURL, addressListURL, addressCreateURL, addressUpdateURL, addressDeleteURL, userIDURL, paymentListURL } from "../constants";
 import {authAxios} from "../utils";
 import {connect} from "react-redux";
 import {Redirect} from "react-router-dom";
 
 const UPDATE_FORM = "UPDATE_FORM";
 const CREATE_FORM = "CREATE_FORM";
+
+class PaymentHistory extends React.Component {
+    state = {
+        payments: []
+    };
+
+    componentDidMount() {
+        this.handleFetchPayments()
+    }
+
+    handleFetchPayments = () => {
+        this.setState({ loading: true });
+        authAxios
+            .get(paymentListURL)
+            .then(res => {
+            this.setState({
+                loading: false,
+                payments: res.data
+                });
+            })
+            .catch(err => {
+            this.setState({ error: err, loading: false });
+        });
+    };
+
+    render() {
+        const {payments} = this.state;
+        return (
+            <Table>
+                <Table.Header>
+                    <Table.Row>
+                        <Table.HeaderCell>ID</Table.HeaderCell>
+                        <Table.HeaderCell>Amount</Table.HeaderCell>
+                        <Table.HeaderCell>Date</Table.HeaderCell>
+                    </Table.Row>
+                </Table.Header>
+                <Table.Body>
+                    {payments.map(p => {
+                        return (
+                            <Table.Row key={p.id}>
+                                <Table.Cell>{p.id}</Table.Cell>
+                                <Table.Cell>${p.amount}</Table.Cell>
+                                <Table.Cell>{new Date(p.timestamp).toUTCString()}</Table.Cell>
+                            </Table.Row>
+                        )
+                    })}
+                </Table.Body>
+            </Table>
+        )
+    }
+}
 
 class AddressForm extends React.Component {
     state = {
@@ -201,6 +252,16 @@ class Profile extends React.Component {
         });
     };
 
+    handleGetActiveItem = () => {
+        const { activeItem } = this.state;
+        if (activeItem === "billingAddress") {
+            return "Billing Address";
+        } else if (activeItem === "shippingAddress") {
+            return "Shipping Address";
+        }
+        return "Payment History";
+    };
+
     handleFormatCountries = countries => {
         const keys = Object.keys(countries);
         return keys.map(k => {
@@ -267,8 +328,59 @@ class Profile extends React.Component {
         this.setState({ selectedAddress: null })
     };
 
+    renderAddresses = () => {
+        const { activeItem, addresses, countries, selectedAddress, userID } = this.state;
+        return (
+            <React.Fragment>
+                <Card.Group>
+                    {addresses.map(a => {
+                        return (
+                            <Card key={a.id}>
+                                <Card.Content>
+                                    {a.default && (
+                                        <Label as="a" color="blue" ribbon="right">
+                                            Default
+                                        </Label>
+                                    )}
+                                    <Card.Header>{a.street_address}, {a.apartment_address}</Card.Header>
+                                    <Card.Meta>{a.country}</Card.Meta>
+                                    <Card.Description>{a.zip}</Card.Description>
+                                </Card.Content>
+                                <Card.Content extra>
+                                    <Button color="yellow" onClick={() => this.handleSelectAddress(a)}>Update</Button>
+                                    <Button color="red" onClick={() => this.handleDeleteAddress(a.id)}>Delete</Button>
+                                </Card.Content>
+                            </Card>
+                        );
+                    })}
+                </Card.Group>
+                {addresses.length > 0 ? <Divider /> : null}
+                {selectedAddress === null ? (
+                    <AddressForm
+                        activeItem={activeItem}
+                        countries={countries}
+                        formType={CREATE_FORM}
+                        userID={userID}
+                        callback={this.handleCallback}
+                    />
+                ) : null}
+
+                {selectedAddress && (
+                    <AddressForm
+                        activeItem={activeItem}
+                        userID={userID}
+                        countries={countries}
+                        address={selectedAddress}
+                        formType={UPDATE_FORM}
+                        callback={this.handleCallback}
+                    />
+                )}
+            </React.Fragment>
+        )
+    };
+
     render() {
-        const { activeItem, error, loading, addresses, countries, selectedAddress, userID } = this.state;
+        const { activeItem, error, loading } = this.state;
         const { isAuthenticated } = this.props;
         if (!isAuthenticated) {
             return <Redirect to="/login" />
@@ -315,50 +427,12 @@ class Profile extends React.Component {
                         </Menu>
                     </Grid.Column>
                     <Grid.Column width={10}>
-                        <Header>{`Update your ${activeItem === 'billingAddress' ? 'billing' : 'shipping'} address`}</Header>
+                        <Header>{this.handleGetActiveItem()}</Header>
                         <Divider />
-                        <Card.Group>
-                            {addresses.map(a => {
-                                return (
-                                    <Card key={a.id}>
-                                        <Card.Content>
-                                            {a.default && (
-                                                <Label as="a" color="blue" ribbon="right">
-                                                    Default
-                                                </Label>
-                                            )}
-                                            <Card.Header>{a.street_address}, {a.apartment_address}</Card.Header>
-                                            <Card.Meta>{a.country}</Card.Meta>
-                                            <Card.Description>{a.zip}</Card.Description>
-                                        </Card.Content>
-                                        <Card.Content extra>
-                                            <Button color="yellow" onClick={() => this.handleSelectAddress(a)}>Update</Button>
-                                            <Button color="red" onClick={() => this.handleDeleteAddress(a.id)}>Delete</Button>
-                                        </Card.Content>
-                                    </Card>
-                                );
-                            })}
-                        </Card.Group>
-                        {addresses.length > 0 ? <Divider /> : null}
-                        {selectedAddress === null ? (
-                            <AddressForm
-                                activeItem={activeItem}
-                                countries={countries}
-                                formType={CREATE_FORM}
-                                userID={userID}
-                                callback={this.handleCallback}
-                            />
-                        ) : null}
-
-                        {selectedAddress && (
-                            <AddressForm
-                                activeItem={activeItem}
-                                userID={userID}
-                                countries={countries}
-                                address={selectedAddress}
-                                formType={UPDATE_FORM}
-                                callback={this.handleCallback}
-                            />
+                        {activeItem === "paymentHistory" ? (
+                            <PaymentHistory />
+                        ) : (
+                            this.renderAddresses()
                         )}
                     </Grid.Column>
                 </Grid.Row>

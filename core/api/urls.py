@@ -13,7 +13,8 @@ from .views import (
     CountryListView,
     AddressUpdateView,
     AddressDeleteView,
-    OrderItemDeleteView
+    OrderItemDeleteView,
+    PaymentListView
 )
 
 urlpatterns = [
@@ -30,5 +31,6 @@ urlpatterns = [
     path('checkout/', PaymentView.as_view(), name='checkout'),
     path('add-coupon/', AddCouponView.as_view(), name='add-coupon'),
     path('order-item/<pk>/delete/', OrderItemDeleteView.as_view(), name='order-item-delete'),
-    path('order-item/update/', RemoveFromCartView.as_view(), name='order-item-update')
+    path('order-item/update/', RemoveFromCartView.as_view(), name='order-item-update'),
+    path('payments/', PaymentListView.as_view(), name='payment-list')
 ]
